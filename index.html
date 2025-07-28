@@ -1,0 +1,82 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Energy Usage Calculator</title>
+</head>
+<body onload="autoFillCurrentDateTime()">
+<div style="max-width:600px;padding:20px;border:1px solid #ccc;border-radius:8px;">
+  <h3>Energy Usage Calculator (2 Meters)</h3>
+
+  <label>Previous Reading – Meter 1 (kWh):</label><br>
+  <input id="prev1" type="number" step="0.01"><br><br>
+
+  <label>Previous Reading – Meter 2 (kWh):</label><br>
+  <input id="prev2" type="number" step="0.01"><br><br>
+
+  <label>Previous Date & Time:</label><br>
+  <input id="prevTime" type="datetime-local"><br><br>
+
+  <label>Current Reading – Meter 1 (kWh):</label><br>
+  <input id="curr1" type="number" step="0.01"><br><br>
+
+  <label>Current Reading – Meter 2 (kWh):</label><br>
+  <input id="curr2" type="number" step="0.01"><br><br>
+
+  <label>Current Date & Time:</label><br>
+  <input id="currTime" type="datetime-local"><br><br>
+
+  <button onclick="calculateUsage()">Calculate</button>
+
+  <div id="result" style="margin-top:20px;"></div>
+</div>
+
+<script>
+  function autoFillCurrentDateTime() {
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    const isoString = local.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
+    document.getElementById('currTime').value = isoString;
+  }
+
+  function calculateUsage() {
+    const prev1 = parseFloat(document.getElementById('prev1').value) || 0;
+    const prev2 = parseFloat(document.getElementById('prev2').value) || 0;
+    const curr1 = parseFloat(document.getElementById('curr1').value) || 0;
+    const curr2 = parseFloat(document.getElementById('curr2').value) || 0;
+
+    const prevTime = new Date(document.getElementById('prevTime').value);
+    const currTime = new Date(document.getElementById('currTime').value);
+
+    if (!prevTime || !currTime || currTime <= prevTime) {
+      document.getElementById('result').innerHTML = "<span style='color:red;'>Check the dates. Current time must be after previous time.</span>";
+      return;
+    }
+
+    const used1 = curr1 - prev1;
+    const used2 = curr2 - prev2;
+    const totalUsed = used1 + used2;
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysPassed = (currTime - prevTime) / msPerDay;
+
+    const avgPerDay = totalUsed / daysPassed;
+
+    const year = currTime.getFullYear();
+    const month = currTime.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const projectedMonthly = avgPerDay * daysInMonth;
+
+    document.getElementById('result').innerHTML = `
+      <strong>Results:</strong><br>
+      Total kWh Used: <strong>${totalUsed.toFixed(2)}</strong><br>
+      Days Passed: <strong>${daysPassed.toFixed(2)}</strong><br>
+      Avg Daily Usage: <strong>${avgPerDay.toFixed(2)} kWh</strong><br>
+      <span style="color:green;">Projected Monthly Usage: <strong>${projectedMonthly.toFixed(2)} kWh</strong></span>
+    `;
+  }
+</script>
+</body>
+</html>
