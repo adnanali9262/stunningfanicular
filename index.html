@@ -1,188 +1,145 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Energy Usage Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background: #f8f9fa;
-      padding: 20px;
-      max-width: 700px;
-      margin: auto;
-    }
-    h2 {
-      text-align: center;
-      color: #007BFF;
-    }
-    .reading-group {
-      background: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-      font-weight: 600;
-    }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-top: 4px;
-      margin-bottom: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-sizing: border-box;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      font-size: 16px;
-      background-color: #007BFF;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    #result {
-      margin-top: 25px;
-      background: #e9ecef;
-      padding: 15px;
-      border-radius: 6px;
-      font-size: 16px;
-      line-height: 1.6;
-    }
-    .reading-pair {
-      border-top: 1px solid #ddd;
-      padding-top: 15px;
-      margin-top: 10px;
-    }
+    body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+    input, button { padding: 6px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+    label { font-weight: bold; display: block; margin-top: 10px; }
+    .reading-block { border: 1px solid #ccc; padding: 10px; margin-top: 10px; border-radius: 6px; background: #f9f9f9; }
+    .meter-container { display: flex; gap: 10px; }
+    .meter-container > div { flex: 1; }
+    canvas { width: 100%; max-width: 100%; height: 300px; }
   </style>
 </head>
 <body>
+  <h2>Energy Usage Tracker</h2>  <div id="readings"></div>
+  <button onclick="addReading()">➕ Add Reading</button><label for="futureDate">Next Reading Date:</label> <input type="datetime-local" id="futureDate">
 
-  <h2>Energy Usage Tracker</h2>
-
-  <div id="readings-container" class="reading-group">
-    <div class="reading-pair">
-      <label>Meter 1 Reading (kWh):</label>
-      <input type="number" class="m1" placeholder="Enter reading">
-      <label>Meter 2 Reading (kWh):</label>
-      <input type="number" class="m2" placeholder="Enter reading">
-      <label>Date & Time:</label>
-      <input type="datetime-local" class="ts">
-    </div>
-  </div>
-
-  <button onclick="addReading()">➕ Add Reading</button>
-
-  <div class="reading-group">
-    <label>Next Reading Date (for projection):</label>
-    <input type="datetime-local" id="futureDate">
-    <button onclick="calculate()">📊 Calculate Usage</button>
-  </div>
+<button onclick="calculate()">Calculate</button>
 
   <div id="result"></div>
+  <canvas id="chart"></canvas>  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  <script>
+    let readings = JSON.parse(localStorage.getItem('readings') || '[]');
 
-  <script>
-    function getLocalDateTimeString(date) {
-      const pad = (n) => n.toString().padStart(2, '0');
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    function saveData() {
+      localStorage.setItem('readings', JSON.stringify(readings));
+      localStorage.setItem('futureDate', document.getElementById('futureDate').value);
     }
 
-    // Initialize with now
-    document.querySelector('.ts').value = getLocalDateTimeString(new Date());
+    function loadData() {
+      document.getElementById('readings').innerHTML = '';
+      readings.forEach((r, i) => addReading(r.meter1, r.meter2, r.datetime, i));
+      if (localStorage.getItem('futureDate')) {
+        document.getElementById('futureDate').value = localStorage.getItem('futureDate');
+      }
+    }
 
-    function addReading() {
-      const container = document.getElementById('readings-container');
-      const div = document.createElement('div');
-      div.className = 'reading-pair';
-      div.innerHTML = `
-        <label>Meter 1 Reading (kWh):</label>
-        <input type="number" class="m1" placeholder="Enter reading">
-        <label>Meter 2 Reading (kWh):</label>
-        <input type="number" class="m2" placeholder="Enter reading">
-        <label>Date & Time:</label>
-        <input type="datetime-local" class="ts">
+    function addReading(m1 = '', m2 = '', dt = '', index = readings.length) {
+      const block = document.createElement('div');
+      block.className = 'reading-block';
+      block.innerHTML = `
+        <label>Reading ${index + 1}</label>
+        <div class="meter-container">
+          <div>
+            <input type="number" placeholder="Meter 1 (kWh)" value="${m1}" onchange="updateReading(${index})" class="m1">
+          </div>
+          <div>
+            <input type="number" placeholder="Meter 2 (kWh)" value="${m2}" onchange="updateReading(${index})" class="m2">
+          </div>
+        </div>
+        <input type="datetime-local" value="${dt}" onchange="updateReading(${index})" class="datetime">
       `;
-      container.appendChild(div);
-      div.querySelector('.ts').value = getLocalDateTimeString(new Date());
+      document.getElementById('readings').appendChild(block);
+      if (!readings[index]) readings.push({ meter1: '', meter2: '', datetime: '' });
+    }
+
+    function updateReading(index) {
+      const blocks = document.querySelectorAll('.reading-block');
+      const block = blocks[index];
+      readings[index] = {
+        meter1: parseFloat(block.querySelector('.m1').value) || 0,
+        meter2: parseFloat(block.querySelector('.m2').value) || 0,
+        datetime: block.querySelector('.datetime').value
+      };
+      saveData();
     }
 
     function calculate() {
-      const readings = document.querySelectorAll('.reading-pair');
-      const m1 = [], m2 = [], times = [];
+      const futureDate = new Date(document.getElementById('futureDate').value);
+      const validReadings = readings.filter(r => r.meter1 && r.meter2 && r.datetime).sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
 
-      readings.forEach(pair => {
-        const r1 = parseFloat(pair.querySelector('.m1').value);
-        const r2 = parseFloat(pair.querySelector('.m2').value);
-        const time = new Date(pair.querySelector('.ts').value);
+      if (validReadings.length < 2) {
+        document.getElementById('result').innerHTML = '❗ At least 2 readings are required.';
+        return;
+      }
 
-        if (!isNaN(r1) && !isNaN(r2) && time instanceof Date && !isNaN(time)) {
-          m1.push(r1);
-          m2.push(r2);
-          times.push(time);
+      const usageData = [];
+      let totalUsed1 = 0, totalUsed2 = 0, totalDays = 0;
+      const labels = [], combinedUsage = [];
+
+      for (let i = 1; i < validReadings.length; i++) {
+        const prev = validReadings[i - 1];
+        const curr = validReadings[i];
+        const days = (new Date(curr.datetime) - new Date(prev.datetime)) / (1000 * 60 * 60 * 24);
+        const used1 = curr.meter1 - prev.meter1;
+        const used2 = curr.meter2 - prev.meter2;
+        usageData.push({ date: curr.datetime, used1, used2, days });
+        totalUsed1 += used1;
+        totalUsed2 += used2;
+        totalDays += days;
+        labels.push(new Date(curr.datetime).toLocaleDateString());
+        combinedUsage.push(used1 + used2);
+      }
+
+      const avg1 = totalUsed1 / totalDays;
+      const avg2 = totalUsed2 / totalDays;
+      const avgTotal = avg1 + avg2;
+      const projectDays = (futureDate - new Date(validReadings.at(-1).datetime)) / (1000 * 60 * 60 * 24);
+      const proj1 = validReadings.at(-1).meter1 + (avg1 * projectDays);
+      const proj2 = validReadings.at(-1).meter2 + (avg2 * projectDays);
+
+      const threshold = 200;
+      const remain1 = threshold - (validReadings.at(-1).meter1 - validReadings[0].meter1);
+      const remain2 = threshold - (validReadings.at(-1).meter2 - validReadings[0].meter2);
+      const days1 = remain1 / avg1;
+      const days2 = remain2 / avg2;
+
+      document.getElementById('result').innerHTML = `
+        <strong>Combined Results:</strong><br>
+        Total Used: ${(totalUsed1 + totalUsed2).toFixed(2)} kWh<br>
+        Average Daily: ${avgTotal.toFixed(2)} kWh/day<br>
+        Projected Usage by ${futureDate.toLocaleDateString()}: ${(proj1 + proj2).toFixed(2)} kWh<br><br>
+
+        <strong>200 Unit Threshold:</strong><br>
+        Meter 1: ${(remain1).toFixed(2)} kWh remaining, approx. ${(new Date(new Date(validReadings.at(-1).datetime).getTime() + days1 * 86400000)).toLocaleDateString()}<br>
+        Meter 2: ${(remain2).toFixed(2)} kWh remaining, approx. ${(new Date(new Date(validReadings.at(-1).datetime).getTime() + days2 * 86400000)).toLocaleDateString()}
+      `;
+
+      new Chart(document.getElementById('chart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Combined Usage (kWh)',
+            data: combinedUsage,
+            borderColor: 'blue',
+            backgroundColor: 'lightblue',
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: true } },
+          scales: { y: { beginAtZero: true } }
         }
       });
 
-      if (m1.length < 2) {
-        document.getElementById('result').innerHTML = "⚠️ Please enter at least two readings.";
-        return;
-      }
-
-      // Sort by time
-      const combined = m1.map((_, i) => ({ m1: m1[i], m2: m2[i], time: times[i] }));
-      combined.sort((a, b) => a.time - b.time);
-
-      const first = combined[0], last = combined[combined.length - 1];
-      const totalDays = (last.time - first.time) / (1000 * 60 * 60 * 24);
-
-      const used1 = last.m1 - first.m1;
-      const used2 = last.m2 - first.m2;
-      const totalUsed = used1 + used2;
-
-      const avgPerDay1 = used1 / totalDays;
-      const avgPerDay2 = used2 / totalDays;
-
-      const projDate = new Date(document.getElementById('futureDate').value);
-      if (!(projDate instanceof Date) || isNaN(projDate)) {
-        document.getElementById('result').innerHTML = "⚠️ Please enter a valid future date.";
-        return;
-      }
-
-      const futureDays = (projDate - last.time) / (1000 * 60 * 60 * 24);
-      const projected1 = last.m1 + avgPerDay1 * futureDays;
-      const projected2 = last.m2 + avgPerDay2 * futureDays;
-
-      const totalProjected = projected1 + projected2;
-
-      document.getElementById('result').innerHTML = `
-        <strong>Summary:</strong><br>
-        Readings Taken: ${combined.length}<br>
-        Days Spanned: ${totalDays.toFixed(2)}<br>
-        <br>
-        <strong>Meter 1:</strong><br>
-        Used: ${used1.toFixed(2)} kWh<br>
-        Avg/day: ${avgPerDay1.toFixed(2)} kWh<br>
-        Projected by ${projDate.toLocaleDateString()}: ${projected1.toFixed(2)} kWh<br>
-        <br>
-        <strong>Meter 2:</strong><br>
-        Used: ${used2.toFixed(2)} kWh<br>
-        Avg/day: ${avgPerDay2.toFixed(2)} kWh<br>
-        Projected by ${projDate.toLocaleDateString()}: ${projected2.toFixed(2)} kWh<br>
-        <br>
-        <strong>Total Projected Usage:</strong> ${totalProjected.toFixed(2)} kWh
-      `;
+      saveData();
     }
-  </script>
 
-</body>
+    loadData();
+  </script></body>
 </html>
