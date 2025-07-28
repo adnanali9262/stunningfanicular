@@ -1,146 +1,242 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Energy Usage Tracker</title>
+  <title>Energy Usage Calculator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
-    input, button { padding: 6px; margin: 5px 0; width: 100%; box-sizing: border-box; }
-    label { font-weight: bold; display: block; margin-top: 10px; }
-    .reading-block { border: 1px solid #ccc; padding: 10px; margin-top: 10px; border-radius: 6px; background: #f9f9f9; }
-    .meter-container { display: flex; gap: 10px; }
-    .meter-container > div { flex: 1; }
-    canvas { width: 100%; max-width: 100%; height: 300px; }
+    :root {
+      --bg: #f9f9f9;
+      --card-bg: #fff;
+      --accent: #007BFF;
+      --text: #222;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    h2 {
+      margin-top: 0;
+      text-align: center;
+      color: var(--accent);
+    }
+
+    label {
+      font-weight: bold;
+      margin: 12px 0 4px;
+      display: block;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      background-color: var(--accent);
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #result {
+      margin-top: 24px;
+      padding: 16px;
+      background: #f1f1f1;
+      border-radius: 8px;
+      line-height: 1.5;
+      font-size: 16px;
+    }
+
+    canvas {
+      margin-top: 30px;
+      width: 100% !important;
+      max-width: 100%;
+      height: auto !important;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+
+      .container {
+        padding: 16px;
+      }
+    }
   </style>
 </head>
 <body>
-  <h2>Energy Usage Tracker</h2>  <div id="readings"></div>
-  <button onclick="addReading()">➕ Add Reading</button><label for="futureDate">Next Reading Date:</label> <input type="datetime-local" id="futureDate">
+  <div class="container">
+    <h2>Energy Usage Calculator</h2>
 
-<button onclick="calculate()">Calculate</button>
+    <label for="prev1">Previous Reading – Meter 1 (kWh):</label>
+    <input type="number" id="prev1">
 
-  <div id="result"></div>
-  <canvas id="chart"></canvas>  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  <script>
-    let readings = JSON.parse(localStorage.getItem('readings') || '[]');
+    <label for="prev2">Previous Reading – Meter 2 (kWh):</label>
+    <input type="number" id="prev2">
 
-    function saveData() {
-      localStorage.setItem('readings', JSON.stringify(readings));
-      localStorage.setItem('futureDate', document.getElementById('futureDate').value);
+    <label for="prevTime">Previous Date & Time:</label>
+    <input type="datetime-local" id="prevTime">
+
+    <label for="curr1">Current Reading – Meter 1 (kWh):</label>
+    <input type="number" id="curr1">
+
+    <label for="curr2">Current Reading – Meter 2 (kWh):</label>
+    <input type="number" id="curr2">
+
+    <label for="currTime">Current Date & Time:</label>
+    <input type="datetime-local" id="currTime">
+
+    <label for="nextTime">Next Reading Date & Time:</label>
+    <input type="datetime-local" id="nextTime">
+
+    <button onclick="calculateUsage()">Calculate</button>
+
+    <div id="result"></div>
+    <canvas id="usageChart"></canvas>
+  </div>
+
+  <script>
+    function getLocalDateTimeString(date) {
+      const pad = (n) => n.toString().padStart(2, '0');
+      const yyyy = date.getFullYear();
+      const mm = pad(date.getMonth() + 1);
+      const dd = pad(date.getDate());
+      const hh = pad(date.getHours());
+      const min = pad(date.getMinutes());
+      return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
     }
 
-    function loadData() {
-      document.getElementById('readings').innerHTML = '';
-      readings.forEach((r, i) => addReading(r.meter1, r.meter2, r.datetime, i));
-      if (localStorage.getItem('futureDate')) {
-        document.getElementById('futureDate').value = localStorage.getItem('futureDate');
+    let chart;
+
+    window.onload = () => {
+      const ids = ['prev1', 'prev2', 'prevTime', 'curr1', 'curr2', 'currTime', 'nextTime'];
+      ids.forEach(id => {
+        const saved = localStorage.getItem(id);
+        if (saved) document.getElementById(id).value = saved;
+      });
+
+      if (!document.getElementById('currTime').value) {
+        document.getElementById('currTime').value = getLocalDateTimeString(new Date());
       }
-    }
+    };
 
-    function addReading(m1 = '', m2 = '', dt = '', index = readings.length) {
-      const block = document.createElement('div');
-      block.className = 'reading-block';
-      block.innerHTML = `
-        <label>Reading ${index + 1}</label>
-        <div class="meter-container">
-          <div>
-            <input type="number" placeholder="Meter 1 (kWh)" value="${m1}" onchange="updateReading(${index})" class="m1">
-          </div>
-          <div>
-            <input type="number" placeholder="Meter 2 (kWh)" value="${m2}" onchange="updateReading(${index})" class="m2">
-          </div>
-        </div>
-        <input type="datetime-local" value="${dt}" onchange="updateReading(${index})" class="datetime">
-      `;
-      document.getElementById('readings').appendChild(block);
-      if (!readings[index]) readings.push({ meter1: '', meter2: '', datetime: '' });
-    }
+    function calculateUsage() {
+      const ids = ['prev1', 'prev2', 'prevTime', 'curr1', 'curr2', 'currTime', 'nextTime'];
+      ids.forEach(id => {
+        localStorage.setItem(id, document.getElementById(id).value);
+      });
 
-    function updateReading(index) {
-      const blocks = document.querySelectorAll('.reading-block');
-      const block = blocks[index];
-      readings[index] = {
-        meter1: parseFloat(block.querySelector('.m1').value) || 0,
-        meter2: parseFloat(block.querySelector('.m2').value) || 0,
-        datetime: block.querySelector('.datetime').value
-      };
-      saveData();
-    }
+      const prev1 = parseFloat(document.getElementById('prev1').value) || 0;
+      const prev2 = parseFloat(document.getElementById('prev2').value) || 0;
+      const curr1 = parseFloat(document.getElementById('curr1').value) || 0;
+      const curr2 = parseFloat(document.getElementById('curr2').value) || 0;
 
-    function calculate() {
-      const futureDate = new Date(document.getElementById('futureDate').value);
-      const validReadings = readings.filter(r => r.meter1 && r.meter2 && r.datetime).sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+      const prevTime = new Date(document.getElementById('prevTime').value);
+      const currTime = new Date(document.getElementById('currTime').value);
+      const nextTimeInput = document.getElementById('nextTime').value;
 
-      if (validReadings.length < 2) {
-        document.getElementById('result').innerHTML = '❗ At least 2 readings are required.';
-        return;
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const daysPassed = (currTime - prevTime) / msPerDay;
+      const used1 = curr1 - prev1;
+      const used2 = curr2 - prev2;
+      const totalUsed = used1 + used2;
+      const avgPerDay = totalUsed / daysPassed;
+      const avgPerDay1 = used1 / daysPassed;
+      const avgPerDay2 = used2 / daysPassed;
+
+      const projectionInfo = [];
+      let note = "";
+      if (nextTimeInput) {
+        const nextTime = new Date(nextTimeInput);
+        const daysToNext = (nextTime - currTime) / msPerDay;
+        const projected1 = curr1 + avgPerDay1 * daysToNext;
+        const projected2 = curr2 + avgPerDay2 * daysToNext;
+
+        const threshold = 200;
+        const daysToThreshold1 = (threshold - used1) / avgPerDay1;
+        const daysToThreshold2 = (threshold - used2) / avgPerDay2;
+
+        const date1 = new Date(prevTime.getTime() + daysToThreshold1 * msPerDay);
+        const date2 = new Date(prevTime.getTime() + daysToThreshold2 * msPerDay);
+
+        const days1 = Math.round((nextTime - date1) / msPerDay);
+        const days2 = Math.round((nextTime - date2) / msPerDay);
+
+        note = `<br><strong>Note:</strong> You will remain under 200 units on each meter on:<br>
+                Meter 1: ${date1.toDateString()} (${Math.abs(days1)} days ${days1 > 0 ? 'before' : 'after'} next reading)<br>
+                Meter 2: ${date2.toDateString()} (${Math.abs(days2)} days ${days2 > 0 ? 'before' : 'after'} next reading)`;
       }
-
-      const usageData = [];
-      let totalUsed1 = 0, totalUsed2 = 0, totalDays = 0;
-      const labels = [], combinedUsage = [];
-
-      for (let i = 1; i < validReadings.length; i++) {
-        const prev = validReadings[i - 1];
-        const curr = validReadings[i];
-        const days = (new Date(curr.datetime) - new Date(prev.datetime)) / (1000 * 60 * 60 * 24);
-        const used1 = curr.meter1 - prev.meter1;
-        const used2 = curr.meter2 - prev.meter2;
-        usageData.push({ date: curr.datetime, used1, used2, days });
-        totalUsed1 += used1;
-        totalUsed2 += used2;
-        totalDays += days;
-        labels.push(new Date(curr.datetime).toLocaleDateString());
-        combinedUsage.push(used1 + used2);
-      }
-
-      const avg1 = totalUsed1 / totalDays;
-      const avg2 = totalUsed2 / totalDays;
-      const avgTotal = avg1 + avg2;
-      const projectDays = (futureDate - new Date(validReadings.at(-1).datetime)) / (1000 * 60 * 60 * 24);
-      const proj1 = validReadings.at(-1).meter1 + (avg1 * projectDays);
-      const proj2 = validReadings.at(-1).meter2 + (avg2 * projectDays);
-
-      const threshold = 200;
-      const remain1 = threshold - (validReadings.at(-1).meter1 - validReadings[0].meter1);
-      const remain2 = threshold - (validReadings.at(-1).meter2 - validReadings[0].meter2);
-      const days1 = remain1 / avg1;
-      const days2 = remain2 / avg2;
 
       document.getElementById('result').innerHTML = `
-        <strong>Combined Results:</strong><br>
-        Total Used: ${(totalUsed1 + totalUsed2).toFixed(2)} kWh<br>
-        Average Daily: ${avgTotal.toFixed(2)} kWh/day<br>
-        Projected Units Consumed by Projected Usage by ${futureDate.toLocaleDateString()}: ${(proj1 + proj2).toFixed(2)} kWh<br><br>
+        <strong>Results:</strong><br>
+        Total kWh Used: ${totalUsed.toFixed(2)}<br>
+        Days Passed: ${daysPassed.toFixed(2)}<br>
+        Avg Daily Usage: ${avgPerDay.toFixed(2)} kWh<br>
+        Meter 1: ${used1.toFixed(2)} kWh, Avg: ${avgPerDay1.toFixed(2)}<br>
+        Meter 2: ${used2.toFixed(2)} kWh, Avg: ${avgPerDay2.toFixed(2)}<br>
+        ${note}`;
 
-        <strong>200 Unit Threshold:</strong><br>
-        Meter 1: ${(remain1).toFixed(2)} kWh: <br>
-        Meter 1: ${(remain1).toFixed(2)} kWh remaining, approx. ${(new Date(new Date(validReadings.at(-1).datetime).getTime() + days1 * 86400000)).toLocaleDateString()}<br>
-        Meter 2: ${(remain2).toFixed(2)} kWh remaining, approx. ${(new Date(new Date(validReadings.at(-1).datetime).getTime() + days2 * 86400000)).toLocaleDateString()}
-      `;
-
-      new Chart(document.getElementById('chart'), {
+      if (chart) chart.destroy();
+      const ctx = document.getElementById('usageChart').getContext('2d');
+      chart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels,
-          datasets: [{
-            label: 'Combined Usage (kWh)',
-            data: combinedUsage,
-            borderColor: 'blue',
-            backgroundColor: 'lightblue',
-            tension: 0.3,
-            fill: true
-          }]
+          labels: ['Previous', 'Current'],
+          datasets: [
+            {
+              label: 'Meter 1',
+              data: [prev1, curr1],
+              borderColor: 'red',
+              fill: false
+            },
+            {
+              label: 'Meter 2',
+              data: [prev2, curr2],
+              borderColor: 'blue',
+              fill: false
+            }
+          ]
         },
         options: {
           responsive: true,
-          plugins: { legend: { display: true } },
-          scales: { y: { beginAtZero: true } }
+          plugins: {
+            legend: { position: 'top' },
+            title: { display: true, text: 'Energy Usage Over Time' }
+          }
         }
       });
-
-      saveData();
     }
-
-    loadData();
-  </script></body>
+  </script>
+</body>
 </html>
