@@ -2,50 +2,145 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Energy Usage Calculator (2 Meters)</title>
+  <title>Energy Usage Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-    input, button { padding: 6px; margin: 5px 0; width: 100%; }
-    label { font-weight: bold; margin-top: 10px; display: block; }
-    #result { margin-top: 20px; padding: 10px; background: #f0f0f0; }
+    :root {
+      --bg: #f9f9f9;
+      --card-bg: #fff;
+      --accent: #007BFF;
+      --text: #222;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    h2 {
+      margin-top: 0;
+      text-align: center;
+      color: var(--accent);
+    }
+
+    label {
+      font-weight: bold;
+      margin: 12px 0 4px;
+      display: block;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      background-color: var(--accent);
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #result {
+      margin-top: 24px;
+      padding: 16px;
+      background: #f1f1f1;
+      border-radius: 8px;
+      line-height: 1.5;
+      font-size: 16px;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+
+      .container {
+        padding: 16px;
+      }
+    }
   </style>
 </head>
 <body>
-  <h2>Energy Usage Calculator (2 Meters)</h2>
+  <div class="container">
+    <h2>Energy Usage Calculator</h2>
 
-  <label for="prev1">Previous Reading – Meter 1 (kWh):</label>
-  <input type="number" id="prev1">
+    <label for="prev1">Previous Reading – Meter 1 (kWh):</label>
+    <input type="number" id="prev1">
 
-  <label for="prev2">Previous Reading – Meter 2 (kWh):</label>
-  <input type="number" id="prev2">
+    <label for="prev2">Previous Reading – Meter 2 (kWh):</label>
+    <input type="number" id="prev2">
 
-  <label for="prevTime">Previous Date & Time:</label>
-  <input type="datetime-local" id="prevTime">
+    <label for="prevTime">Previous Date & Time:</label>
+    <input type="datetime-local" id="prevTime">
 
-  <label for="curr1">Current Reading – Meter 1 (kWh):</label>
-  <input type="number" id="curr1">
+    <label for="curr1">Current Reading – Meter 1 (kWh):</label>
+    <input type="number" id="curr1">
 
-  <label for="curr2">Current Reading – Meter 2 (kWh):</label>
-  <input type="number" id="curr2">
+    <label for="curr2">Current Reading – Meter 2 (kWh):</label>
+    <input type="number" id="curr2">
 
-  <label for="currTime">Current Date & Time:</label>
-  <input type="datetime-local" id="currTime">
+    <label for="currTime">Current Date & Time:</label>
+    <input type="datetime-local" id="currTime">
 
-  <button onclick="calculateUsage()">Calculate</button>
+    <button onclick="calculateUsage()">Calculate</button>
 
-  <div id="result"></div>
+    <div id="result"></div>
+  </div>
 
   <script>
-    // Load previous values from localStorage
+    function getLocalDateTimeString(date) {
+      const pad = (n) => n.toString().padStart(2, '0');
+      const yyyy = date.getFullYear();
+      const mm = pad(date.getMonth() + 1);
+      const dd = pad(date.getDate());
+      const hh = pad(date.getHours());
+      const min = pad(date.getMinutes());
+      return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+    }
+
     window.onload = () => {
-      ['prev1', 'prev2', 'prevTime'].forEach(id => {
-        if (localStorage.getItem(id)) document.getElementById(id).value = localStorage.getItem(id);
+      ['prev1', 'prev2', 'prevTime', 'curr1', 'curr2', 'currTime'].forEach(id => {
+        const saved = localStorage.getItem(id);
+        if (saved) document.getElementById(id).value = saved;
       });
-      const now = new Date().toISOString().slice(0, 16); // yyyy-MM-ddTHH:mm
-      document.getElementById('currTime').value = now;
+
+      if (!document.getElementById('currTime').value) {
+        document.getElementById('currTime').value = getLocalDateTimeString(new Date());
+      }
     };
 
     function calculateUsage() {
+      ['prev1', 'prev2', 'prevTime', 'curr1', 'curr2', 'currTime'].forEach(id => {
+        localStorage.setItem(id, document.getElementById(id).value);
+      });
+
       const prev1 = parseFloat(document.getElementById('prev1').value) || 0;
       const prev2 = parseFloat(document.getElementById('prev2').value) || 0;
       const curr1 = parseFloat(document.getElementById('curr1').value) || 0;
@@ -53,11 +148,6 @@
 
       const prevTime = new Date(document.getElementById('prevTime').value);
       const currTime = new Date(document.getElementById('currTime').value);
-
-      // Save previous readings
-      localStorage.setItem('prev1', document.getElementById('prev1').value);
-      localStorage.setItem('prev2', document.getElementById('prev2').value);
-      localStorage.setItem('prevTime', document.getElementById('prevTime').value);
 
       if (currTime <= prevTime) {
         document.getElementById('result').innerHTML = "⚠️ Current time must be after previous time.";
@@ -73,7 +163,7 @@
       const avgPerDay = totalUsed / daysPassed;
 
       const year = currTime.getFullYear();
-      const month = currTime.getMonth(); // 0-indexed
+      const month = currTime.getMonth();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
 
       const projectedMonthly = avgPerDay * daysInMonth;
@@ -86,7 +176,6 @@
         Projected Monthly Usage: ${projectedMonthly.toFixed(2)} kWh<br>
       `;
 
-      // 200-unit check and projection
       const threshold = 200;
       const limit1 = prev1 + threshold;
       const limit2 = prev2 + threshold;
