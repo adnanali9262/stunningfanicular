@@ -110,9 +110,10 @@
         <strong>Combined Results:</strong><br>
         Total Used: ${(totalUsed1 + totalUsed2).toFixed(2)} kWh<br>
         Average Daily: ${avgTotal.toFixed(2)} kWh/day<br>
-        Projected Usage by ${futureDate.toLocaleDateString()}: ${(proj1 + proj2).toFixed(2)} kWh<br><br>
+        Projected Units Consumed by Projected Usage by ${futureDate.toLocaleDateString()}: ${(proj1 + proj2).toFixed(2)} kWh<br><br>
 
         <strong>200 Unit Threshold:</strong><br>
+        Meter 1: ${(remain1).toFixed(2)} kWh: <br>
         Meter 1: ${(remain1).toFixed(2)} kWh remaining, approx. ${(new Date(new Date(validReadings.at(-1).datetime).getTime() + days1 * 86400000)).toLocaleDateString()}<br>
         Meter 2: ${(remain2).toFixed(2)} kWh remaining, approx. ${(new Date(new Date(validReadings.at(-1).datetime).getTime() + days2 * 86400000)).toLocaleDateString()}
       `;
