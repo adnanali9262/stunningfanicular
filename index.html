@@ -1,104 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Energy Usage Calculator</title>
+  <meta charset="UTF-8">
+  <title>Energy Usage Calculator (2 Meters)</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 600px;
-      margin: auto;
-      background-color: #f9f9f9;
-    }
-    input {
-      padding: 5px;
-      margin: 5px 0;
-      width: 100%;
-    }
-    label {
-      font-weight: bold;
-    }
-    button {
-      padding: 10px;
-      margin-top: 10px;
-      width: 100%;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    #result {
-      margin-top: 20px;
-      background: #fff;
-      padding: 10px;
-      border: 1px solid #ccc;
-    }
+    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    input, button { padding: 6px; margin: 5px 0; width: 100%; }
+    label { font-weight: bold; margin-top: 10px; display: block; }
+    #result { margin-top: 20px; padding: 10px; background: #f0f0f0; }
   </style>
 </head>
 <body>
   <h2>Energy Usage Calculator (2 Meters)</h2>
 
-  <label>Previous Reading – Meter 1 (kWh):</label>
-  <input type="number" id="prev1" step="0.01" />
+  <label for="prev1">Previous Reading – Meter 1 (kWh):</label>
+  <input type="number" id="prev1">
 
-  <label>Previous Reading – Meter 2 (kWh):</label>
-  <input type="number" id="prev2" step="0.01" />
+  <label for="prev2">Previous Reading – Meter 2 (kWh):</label>
+  <input type="number" id="prev2">
 
-  <label>Previous Date & Time:</label>
-  <input type="datetime-local" id="prevTime" />
+  <label for="prevTime">Previous Date & Time:</label>
+  <input type="datetime-local" id="prevTime">
 
-  <label>Current Reading – Meter 1 (kWh):</label>
-  <input type="number" id="curr1" step="0.01" />
+  <label for="curr1">Current Reading – Meter 1 (kWh):</label>
+  <input type="number" id="curr1">
 
-  <label>Current Reading – Meter 2 (kWh):</label>
-  <input type="number" id="curr2" step="0.01" />
+  <label for="curr2">Current Reading – Meter 2 (kWh):</label>
+  <input type="number" id="curr2">
 
-  <label>Current Date & Time:</label>
-  <input type="datetime-local" id="currTime" />
+  <label for="currTime">Current Date & Time:</label>
+  <input type="datetime-local" id="currTime">
 
   <button onclick="calculateUsage()">Calculate</button>
 
   <div id="result"></div>
 
   <script>
-    function savePreviousData() {
-      localStorage.setItem("prev1", document.getElementById("prev1").value);
-      localStorage.setItem("prev2", document.getElementById("prev2").value);
-      localStorage.setItem("prevTime", document.getElementById("prevTime").value);
-    }
-
-    function loadPreviousData() {
-      if (localStorage.getItem("prev1")) {
-        document.getElementById("prev1").value = localStorage.getItem("prev1");
-      }
-      if (localStorage.getItem("prev2")) {
-        document.getElementById("prev2").value = localStorage.getItem("prev2");
-      }
-      if (localStorage.getItem("prevTime")) {
-        document.getElementById("prevTime").value = localStorage.getItem("prevTime");
-      }
-    }
-
-    function setCurrentTime() {
-      const now = new Date();
-      const localISOTime = now.toISOString().slice(0,16);
-      document.getElementById("currTime").value = localISOTime;
-    }
+    // Load previous values from localStorage
+    window.onload = () => {
+      ['prev1', 'prev2', 'prevTime'].forEach(id => {
+        if (localStorage.getItem(id)) document.getElementById(id).value = localStorage.getItem(id);
+      });
+      const now = new Date().toISOString().slice(0, 16); // yyyy-MM-ddTHH:mm
+      document.getElementById('currTime').value = now;
+    };
 
     function calculateUsage() {
-      const prev1 = parseFloat(document.getElementById("prev1").value) || 0;
-      const prev2 = parseFloat(document.getElementById("prev2").value) || 0;
-      const curr1 = parseFloat(document.getElementById("curr1").value) || 0;
-      const curr2 = parseFloat(document.getElementById("curr2").value) || 0;
+      const prev1 = parseFloat(document.getElementById('prev1').value) || 0;
+      const prev2 = parseFloat(document.getElementById('prev2').value) || 0;
+      const curr1 = parseFloat(document.getElementById('curr1').value) || 0;
+      const curr2 = parseFloat(document.getElementById('curr2').value) || 0;
 
-      const prevTime = new Date(document.getElementById("prevTime").value);
-      const currTime = new Date(document.getElementById("currTime").value);
+      const prevTime = new Date(document.getElementById('prevTime').value);
+      const currTime = new Date(document.getElementById('currTime').value);
 
-      // Save updated previous data
-      savePreviousData();
+      // Save previous readings
+      localStorage.setItem('prev1', document.getElementById('prev1').value);
+      localStorage.setItem('prev2', document.getElementById('prev2').value);
+      localStorage.setItem('prevTime', document.getElementById('prevTime').value);
 
       if (currTime <= prevTime) {
-        document.getElementById("result").innerHTML = "⚠️ Current time must be after previous time.";
+        document.getElementById('result').innerHTML = "⚠️ Current time must be after previous time.";
         return;
       }
 
@@ -108,39 +70,40 @@
 
       const msPerDay = 1000 * 60 * 60 * 24;
       const daysPassed = (currTime - prevTime) / msPerDay;
-
       const avgPerDay = totalUsed / daysPassed;
 
       const year = currTime.getFullYear();
-      const month = currTime.getMonth();
+      const month = currTime.getMonth(); // 0-indexed
       const daysInMonth = new Date(year, month + 1, 0).getDate();
 
       const projectedMonthly = avgPerDay * daysInMonth;
 
-      let resultText = `
+      let resultHTML = `
         <strong>Results:</strong><br>
         Total kWh Used: ${totalUsed.toFixed(2)}<br>
         Days Passed: ${daysPassed.toFixed(2)}<br>
         Avg Daily Usage: ${avgPerDay.toFixed(2)} kWh<br>
-        Projected Monthly Usage: ${projectedMonthly.toFixed(2)} kWh
+        Projected Monthly Usage: ${projectedMonthly.toFixed(2)} kWh<br>
       `;
 
-      // Check threshold
+      // 200-unit check and projection
       const threshold = 200;
+      const limit1 = prev1 + threshold;
+      const limit2 = prev2 + threshold;
+      let warnMsg = '';
+
       if (used1 >= threshold || used2 >= threshold) {
-        resultText += `<br><strong style="color:red;">Warning:</strong> `;
-        if (used1 >= threshold) resultText += `Meter 1 has reached/exceeded 200 units. `;
-        if (used2 >= threshold) resultText += `Meter 2 has reached/exceeded 200 units. `;
+        warnMsg += '<br><strong>⚠️ Warning:</strong> ';
+        if (used1 >= threshold) warnMsg += 'Meter 1 has reached or exceeded 200 units. ';
+        if (used2 >= threshold) warnMsg += 'Meter 2 has reached or exceeded 200 units. ';
       } else {
-        resultText += `<br><strong>Remaining until 200:</strong> Meter 1: ${(threshold - used1).toFixed(2)} units, Meter 2: ${(threshold - used2).toFixed(2)} units.`;
+        warnMsg += '<br><strong>Remaining until 200:</strong> ';
+        warnMsg += `Meter 1: ${(threshold - used1).toFixed(2)} units (until reading: ${limit1.toFixed(2)}), `;
+        warnMsg += `Meter 2: ${(threshold - used2).toFixed(2)} units (until reading: ${limit2.toFixed(2)}).`;
       }
 
-      document.getElementById("result").innerHTML = resultText;
+      document.getElementById('result').innerHTML = resultHTML + warnMsg;
     }
-
-    // On page load
-    loadPreviousData();
-    setCurrentTime();
   </script>
 </body>
 </html>
