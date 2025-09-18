@@ -1,148 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Energy Usage Calculator (2 Meters)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      margin: auto;
-      max-width: 600px;
-      background: #f9f9f9;
-    }
-    input, button {
-      padding: 10px;
-      margin: 8px 0;
-      width: 100%;
-      box-sizing: border-box;
-      font-size: 16px;
-    }
-    label {
-      font-weight: bold;
-      margin-top: 15px;
-      display: block;
-    }
-    #result {
-      margin-top: 20px;
-      padding: 15px;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-    }
-    input[readonly] {
-      background: #eee;
-      color: #444;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stunning Funicular</title>
+
+  <!-- PWA manifest (inlined as JSON) -->
+  <link rel="manifest" id="manifest-placeholder">
+
+  <!-- PWA metadata -->
+  <meta name="theme-color" content="#317EFB" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Stunning Funicular" />
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="https://adnanali9262.github.io/stunningfanicular/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="https://adnanali9262.github.io/stunningfanicular/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="https://adnanali9262.github.io/stunningfanicular/icon-512.png" />
 </head>
 <body>
-  <h2>Energy Usage Calculator (2 Meters)</h2>
-
-  <label for="prev1">Previous Reading – Meter 1 (kWh):</label>
-  <input type="number" id="prev1">
-
-  <label for="prev2">Previous Reading – Meter 2 (kWh):</label>
-  <input type="number" id="prev2">
-
-  <label for="prevTime">Previous Date & Time:</label>
-  <input type="datetime-local" id="prevTime">
-
-  <label for="curr1">Current Reading – Meter 1 (kWh):</label>
-  <input type="number" id="curr1">
-
-  <label for="curr2">Current Reading – Meter 2 (kWh):</label>
-  <input type="number" id="curr2">
-
-  <label>Current Date & Time:</label>
-  <input type="text" id="currTimeDisplay" readonly>
-
-  <label for="nextTime">Next Reading Date & Time:</label>
-  <input type="datetime-local" id="nextTime">
-
-  <button onclick="calculateUsage()">Calculate</button>
-
-  <div id="result"></div>
+  <h1>Hello, Stunning Funicular 🚀</h1>
+  <p>This app is now PWA ready.</p>
 
   <script>
-    function updateCurrentTimeDisplay() {
-      const now = new Date();
-      document.getElementById('currTimeDisplay').value = now.toLocaleString();
-    }
-
-    // Load previous values from localStorage on page load
-    window.onload = () => {
-      ['prev1', 'prev2', 'curr1', 'curr2', 'prevTime', 'nextTime'].forEach(id => {
-        if (localStorage.getItem(id)) {
-          document.getElementById(id).value = localStorage.getItem(id);
+    // Inject manifest inline
+    const manifest = {
+      "name": "Stunning Funicular",
+      "short_name": "Funicular",
+      "start_url": ".",
+      "display": "standalone",
+      "background_color": "#ffffff",
+      "theme_color": "#317EFB",
+      "icons": [
+        {
+          "src": "https://adnanali9262.github.io/stunningfanicular/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        },
+        {
+          "src": "https://adnanali9262.github.io/stunningfanicular/icon-512.png",
+          "sizes": "512x512",
+          "type": "image/png"
         }
-      });
-      updateCurrentTimeDisplay();
+      ]
     };
 
-    function calculateUsage() {
-      updateCurrentTimeDisplay(); // Update current time shown
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+    const manifestURL = URL.createObjectURL(blob);
+    document.getElementById('manifest-placeholder').setAttribute('href', manifestURL);
 
-      const prev1 = parseFloat(document.getElementById('prev1').value) || 0;
-      const prev2 = parseFloat(document.getElementById('prev2').value) || 0;
-      const curr1 = parseFloat(document.getElementById('curr1').value) || 0;
-      const curr2 = parseFloat(document.getElementById('curr2').value) || 0;
-
-      const prevTime = new Date(document.getElementById('prevTime').value);
-      const currTime = new Date(); // Now
-      const nextTime = new Date(document.getElementById('nextTime').value);
-
-      // Save input values to localStorage
-      ['prev1', 'prev2', 'curr1', 'curr2', 'prevTime', 'nextTime'].forEach(id => {
-        localStorage.setItem(id, document.getElementById(id).value);
+    // Inline service worker
+    const swCode = `
+      self.addEventListener('install', (event) => {
+        event.waitUntil(
+          caches.open('app-cache-v1').then((cache) => {
+            return cache.addAll(['./']);
+          })
+        );
       });
 
-      if (isNaN(prevTime) || isNaN(nextTime)) {
-        document.getElementById('result').innerHTML = "⚠️ Please enter valid previous and next date/time.";
-        return;
-      }
+      self.addEventListener('fetch', (event) => {
+        event.respondWith(
+          caches.match(event.request).then((response) => {
+            return response || fetch(event.request);
+          })
+        );
+      });
+    `;
 
-      if (currTime <= prevTime) {
-        document.getElementById('result').innerHTML = "⚠️ Current time must be after previous time.";
-        return;
-      }
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(swBlob);
 
-      const used1 = curr1 - prev1;
-      const used2 = curr2 - prev2;
-      const totalUsed = used1 + used2;
-
-      const msPerDay = 1000 * 60 * 60 * 24;
-      const daysPassed = (currTime - prevTime) / msPerDay;
-      const daysToProject = (nextTime - prevTime) / msPerDay;
-
-      const avgPerDay = totalUsed / daysPassed;
-      const projectedUsage = avgPerDay * daysToProject;
-
-      let resultHTML = `
-        <strong>Results:</strong><br>
-        Total kWh Used: ${totalUsed.toFixed(2)}<br>
-        Days Passed: ${daysPassed.toFixed(2)}<br>
-        Avg Daily Usage: ${avgPerDay.toFixed(2)} kWh<br>
-        Projected Usage by ${nextTime.toLocaleDateString()}: ${projectedUsage.toFixed(2)} kWh<br>
-      `;
-
-      // 200-unit threshold tracking
-      const threshold = 200;
-      const limit1 = prev1 + threshold;
-      const limit2 = prev2 + threshold;
-
-      if (used1 >= threshold || used2 >= threshold) {
-        resultHTML += '<br><strong>⚠️ Warning:</strong> ';
-        if (used1 >= threshold) resultHTML += 'Meter 1 has reached or exceeded 200 units. ';
-        if (used2 >= threshold) resultHTML += 'Meter 2 has reached or exceeded 200 units. ';
-      } else {
-        resultHTML += '<br><strong>Remaining until 200:</strong> ';
-        resultHTML += `Meter 1: ${(threshold - used1).toFixed(2)} units (limit: ${limit1.toFixed(2)}), `;
-        resultHTML += `Meter 2: ${(threshold - used2).toFixed(2)} units (limit: ${limit2.toFixed(2)}).`;
-      }
-
-      document.getElementById('result').innerHTML = resultHTML;
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register(swUrl).then(() => {
+        console.log('Service Worker registered ✅');
+      });
     }
   </script>
 </body>
