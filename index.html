@@ -18,35 +18,10 @@
   <link rel="apple-touch-icon" href="https://adnanali9262.github.io/stunningfanicular/icon-192.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="https://adnanali9262.github.io/stunningfanicular/icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="https://adnanali9262.github.io/stunningfanicular/icon-512.png" />
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 40px;
-    }
-    #installBtn {
-      display: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background: #317EFB;
-      color: white;
-      cursor: pointer;
-      margin-top: 20px;
-    }
-    #installBtn:hover {
-      background: #255bb5;
-    }
-  </style>
 </head>
 <body>
   <h1>Hello, Stunning Funicular 🚀</h1>
   <p>This app is now PWA ready.</p>
-
-  <!-- Install App Button -->
-  <button id="installBtn">📲 Install App</button>
 
   <script>
     // Inject manifest inline
@@ -102,26 +77,6 @@
         console.log('Service Worker registered ✅');
       });
     }
-
-    // Handle PWA install prompt
-    let deferredPrompt;
-    const installBtn = document.getElementById('installBtn');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installBtn.style.display = 'inline-block';
-    });
-
-    installBtn.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to install: ${outcome}`);
-        deferredPrompt = null;
-        installBtn.style.display = 'none';
-      }
-    });
   </script>
 </body>
 </html>
