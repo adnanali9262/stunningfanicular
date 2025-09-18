@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <title>Energy Usage Calculator (2 Meters)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+
   <style>
     body {
       font-family: sans-serif;
@@ -35,6 +40,13 @@
       background: #eee;
       color: #444;
     }
+    #installBtn {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: none; /* hidden until ready */
+    }
   </style>
 </head>
 <body>
@@ -62,6 +74,9 @@
   <input type="datetime-local" id="nextTime">
 
   <button onclick="calculateUsage()">Calculate</button>
+
+  <!-- New Install PWA button -->
+  <button id="installBtn">📲 Install App</button>
 
   <div id="result"></div>
 
@@ -143,6 +158,34 @@
       }
 
       document.getElementById('result').innerHTML = resultHTML;
+    }
+
+    // --------- PWA Install Button Logic ---------
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('User accepted the PWA install');
+        }
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      }
+    });
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log('Service Worker registered'));
     }
   </script>
 </body>
