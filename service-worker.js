@@ -1,4 +1,4 @@
-const CACHE_NAME = "energy-calc-v2";
+const CACHE_NAME = "energy-calc-v3";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
