@@ -7,76 +7,119 @@
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#007bff">
 
   <style>
+    :root {
+      --primary: #007bff;
+      --bg: #f4f6f9;
+      --card-bg: #fff;
+      --text: #333;
+      --muted: #666;
+      --radius: 12px;
+    }
+
     body {
-      font-family: sans-serif;
+      font-family: "Segoe UI", Tahoma, sans-serif;
       padding: 20px;
       margin: auto;
-      max-width: 600px;
-      background: #f9f9f9;
+      max-width: 700px;
+      background: var(--bg);
+      color: var(--text);
     }
-    input, button {
-      padding: 10px;
-      margin: 8px 0;
-      width: 100%;
-      box-sizing: border-box;
-      font-size: 16px;
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: var(--primary);
     }
+
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+    }
+
     label {
-      font-weight: bold;
-      margin-top: 15px;
+      font-weight: 600;
       display: block;
+      margin-top: 12px;
+      color: var(--muted);
     }
-    #result {
-      margin-top: 20px;
-      padding: 15px;
-      background: #fff;
+
+    input, button {
+      padding: 12px;
+      margin-top: 6px;
+      width: 100%;
+      border-radius: var(--radius);
       border: 1px solid #ddd;
-      border-radius: 5px;
+      font-size: 15px;
+      box-sizing: border-box;
     }
+
     input[readonly] {
       background: #eee;
-      color: #444;
     }
-    #installBtn {
-      background: #007bff;
+
+    button {
+      background: var(--primary);
       color: white;
       border: none;
       cursor: pointer;
-      display: none; /* hidden until ready */
+      font-weight: 600;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    #result {
+      padding: 15px;
+      border-radius: var(--radius);
+      background: var(--card-bg);
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+      margin-top: 15px;
+      line-height: 1.6;
+    }
+
+    #installBtn {
+      background: #28a745;
+      margin-top: 15px;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h2>Energy Usage Calculator (2 Meters)</h2>
+  <h2>⚡ Energy Usage Calculator</h2>
 
-  <label for="prev1">Previous Reading – Meter 1 (kWh):</label>
-  <input type="number" id="prev1">
+  <div class="card">
+    <label for="prev1">Previous Reading – Meter 1 (kWh):</label>
+    <input type="number" id="prev1">
 
-  <label for="prev2">Previous Reading – Meter 2 (kWh):</label>
-  <input type="number" id="prev2">
+    <label for="prev2">Previous Reading – Meter 2 (kWh):</label>
+    <input type="number" id="prev2">
 
-  <label for="prevTime">Previous Date & Time:</label>
-  <input type="datetime-local" id="prevTime">
+    <label for="prevTime">Previous Date & Time:</label>
+    <input type="datetime-local" id="prevTime">
 
-  <label for="curr1">Current Reading – Meter 1 (kWh):</label>
-  <input type="number" id="curr1">
+    <label for="curr1">Current Reading – Meter 1 (kWh):</label>
+    <input type="number" id="curr1">
 
-  <label for="curr2">Current Reading – Meter 2 (kWh):</label>
-  <input type="number" id="curr2">
+    <label for="curr2">Current Reading – Meter 2 (kWh):</label>
+    <input type="number" id="curr2">
 
-  <label>Current Date & Time:</label>
-  <input type="text" id="currTimeDisplay" readonly>
+    <label>Current Date & Time:</label>
+    <input type="text" id="currTimeDisplay" readonly>
 
-  <label for="nextTime">Next Reading Date & Time:</label>
-  <input type="datetime-local" id="nextTime">
+    <label for="nextTime">Next Reading Date & Time:</label>
+    <input type="datetime-local" id="nextTime">
 
-  <button onclick="calculateUsage()">Calculate</button>
-
-  <!-- New Install PWA button -->
-  <button id="installBtn">📲 Install App</button>
+    <button onclick="calculateUsage()">🚀 Calculate</button>
+    <button id="installBtn">📲 Install App</button>
+  </div>
 
   <div id="result"></div>
 
@@ -86,7 +129,7 @@
       document.getElementById('currTimeDisplay').value = now.toLocaleString();
     }
 
-    // Load previous values from localStorage on page load
+    // Load previous values + result from localStorage
     window.onload = () => {
       ['prev1', 'prev2', 'curr1', 'curr2', 'prevTime', 'nextTime'].forEach(id => {
         if (localStorage.getItem(id)) {
@@ -94,6 +137,11 @@
         }
       });
       updateCurrentTimeDisplay();
+
+      // Restore last result
+      if (localStorage.getItem('lastResult')) {
+        document.getElementById('result').innerHTML = localStorage.getItem('lastResult');
+      }
     };
 
     function calculateUsage() {
@@ -108,18 +156,22 @@
       const currTime = new Date(); // Now
       const nextTime = new Date(document.getElementById('nextTime').value);
 
-      // Save input values to localStorage
+      // Save input values
       ['prev1', 'prev2', 'curr1', 'curr2', 'prevTime', 'nextTime'].forEach(id => {
         localStorage.setItem(id, document.getElementById(id).value);
       });
 
       if (isNaN(prevTime) || isNaN(nextTime)) {
-        document.getElementById('result').innerHTML = "⚠️ Please enter valid previous and next date/time.";
+        const msg = "⚠️ Please enter valid previous and next date/time.";
+        document.getElementById('result').innerHTML = msg;
+        localStorage.setItem('lastResult', msg);
         return;
       }
 
       if (currTime <= prevTime) {
-        document.getElementById('result').innerHTML = "⚠️ Current time must be after previous time.";
+        const msg = "⚠️ Current time must be after previous time.";
+        document.getElementById('result').innerHTML = msg;
+        localStorage.setItem('lastResult', msg);
         return;
       }
 
@@ -135,11 +187,11 @@
       const projectedUsage = avgPerDay * daysToProject;
 
       let resultHTML = `
-        <strong>Results:</strong><br>
-        Total kWh Used: ${totalUsed.toFixed(2)}<br>
-        Days Passed: ${daysPassed.toFixed(2)}<br>
-        Avg Daily Usage: ${avgPerDay.toFixed(2)} kWh<br>
-        Projected Usage by ${nextTime.toLocaleDateString()}: ${projectedUsage.toFixed(2)} kWh<br>
+        <strong>📊 Results:</strong><br>
+        ✅ Total kWh Used: <b>${totalUsed.toFixed(2)}</b><br>
+        📅 Days Passed: ${daysPassed.toFixed(2)}<br>
+        ⚡ Avg Daily Usage: ${avgPerDay.toFixed(2)} kWh<br>
+        🔮 Projected Usage by ${nextTime.toLocaleDateString()}: <b>${projectedUsage.toFixed(2)} kWh</b><br>
       `;
 
       // 200-unit threshold tracking
@@ -149,8 +201,8 @@
 
       if (used1 >= threshold || used2 >= threshold) {
         resultHTML += '<br><strong>⚠️ Warning:</strong> ';
-        if (used1 >= threshold) resultHTML += 'Meter 1 has reached or exceeded 200 units. ';
-        if (used2 >= threshold) resultHTML += 'Meter 2 has reached or exceeded 200 units. ';
+        if (used1 >= threshold) resultHTML += 'Meter 1 has reached/exceeded 200 units. ';
+        if (used2 >= threshold) resultHTML += 'Meter 2 has reached/exceeded 200 units. ';
       } else {
         resultHTML += '<br><strong>Remaining until 200:</strong> ';
         resultHTML += `Meter 1: ${(threshold - used1).toFixed(2)} units (limit: ${limit1.toFixed(2)}), `;
@@ -158,6 +210,7 @@
       }
 
       document.getElementById('result').innerHTML = resultHTML;
+      localStorage.setItem('lastResult', resultHTML); // Save result
     }
 
     // --------- PWA Install Button Logic ---------
@@ -174,9 +227,6 @@
       if (deferredPrompt) {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          console.log('User accepted the PWA install');
-        }
         deferredPrompt = null;
         installBtn.style.display = 'none';
       }
