@@ -90,6 +90,13 @@
       margin-top: 15px;
       display: none;
     }
+
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      font-size: 14px;
+      color: var(--muted);
+    }
   </style>
 </head>
 <body>
@@ -122,6 +129,10 @@
   </div>
 
   <div id="result"></div>
+
+  <footer>
+    Developed by <strong>Engr. Adnan Rafiq</strong>
+  </footer>
 
   <script>
     function updateCurrentTimeDisplay() {
@@ -226,7 +237,7 @@
     installBtn.addEventListener('click', async () => {
       if (deferredPrompt) {
         deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        await deferredPrompt.userChoice;
         deferredPrompt = null;
         installBtn.style.display = 'none';
       }
